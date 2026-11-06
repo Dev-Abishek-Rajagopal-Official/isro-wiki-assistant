@@ -1,0 +1,31 @@
+[project]
+name = "isro-agentic-orchestration"
+version = "0.1.0"
+description = "LangGraph multi-agent orchestration over the ISRO MCP servers (router -> sub-agents -> final), with Postgres state/event log and Azure speech-to-text"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.6",
+    "langgraph-checkpoint-postgres>=2.0",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.3",
+    # MCP client side; 0.3.x requires the MCP SDK 1.x, same as the isromcp servers (FastMCP 3.x)
+    "langchain-mcp-adapters>=0.3,<0.4",
+    "mcp>=1.24,<2",
+    "psycopg[binary,pool]>=3.2",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["orchestrator"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

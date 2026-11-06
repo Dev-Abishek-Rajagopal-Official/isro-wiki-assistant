@@ -1,0 +1,7 @@
+.env
+.venv/
+pg_data/
+__pycache__/
+.pytest_cache/
+pgadmin_data/
+redis_data/

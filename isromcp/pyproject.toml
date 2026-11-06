@@ -1,0 +1,27 @@
+[project]
+name = "isro-mcp"
+version = "0.1.0"
+description = "One FastMCP server per ISRO data source (RAG knowledge base, Launch Library 2, Wikidata, CelesTrak)"
+requires-python = ">=3.11"
+dependencies = [
+    # langchain-mcp-adapters (used by the agent) requires the MCP SDK 1.x, and FastMCP 4 needs SDK 2.x,
+    # so stay on FastMCP 3.x + mcp<2: servers and adapter then speak the same protocol version.
+    "fastmcp>=3,<4",
+    "mcp>=1.24,<2",
+    "httpx>=0.27",
+    # knowledge-base server reuses the isro rag retrieval stack
+    "qdrant-client>=1.12",
+    "fastembed>=0.5",
+    "openai>=1.50",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "langchain-mcp-adapters>=0.1"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

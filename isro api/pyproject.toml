@@ -1,0 +1,34 @@
+[project]
+name = "isro-api"
+version = "0.1.0"
+description = "FastAPI backend for the ISRO multi-agent assistant: auth, conversations/threads, WebSocket streaming, usage"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "alembic>=1.14",
+    "psycopg[binary,pool]>=3.2",
+    "pydantic-settings>=2.6",
+    "email-validator>=2.2",
+    "pyjwt>=2.9",
+    "argon2-cffi>=23.1",
+    "redis>=5.2",
+    "python-multipart>=0.0.18",
+    "isro-agentic-orchestration",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "httpx>=0.27", "asgi-lifespan>=2.1", "websockets>=13"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+isro-agentic-orchestration = { path = "../isro agentic orchestration", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"

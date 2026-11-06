@@ -1,0 +1,8 @@
+.env
+.cache/
+qdrant_data/
+qdrant_storage/
+data/embedding_cache.sqlite
+__pycache__/
+.pytest_cache/
+.venv/

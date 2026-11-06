@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "isro-postgres",
+      "Group": "ISRO agent",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "isro_agent",
+      "Username": "isro",
+      "SSLMode": "prefer"
+    }
+  }
+}

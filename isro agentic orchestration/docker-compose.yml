@@ -1,0 +1,57 @@
+# PostgreSQL for the agent: LangGraph checkpoints (full AgentState per step, per thread)
+# and the append-only agent_events log used for frontend updates / replay.
+# pgAdmin web UI: http://localhost:5050 (local desktop mode, no pgAdmin login; the server
+# "isro-postgres" is pre-registered - its DB password is POSTGRES_PASSWORD from .env).
+#   docker compose up -d
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: isro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-isro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-isro_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-isro_agent}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-isro} -d ${POSTGRES_DB:-isro_agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    # isro api: refresh-token store + access-token revocation list, caches, per-thread run locks,
+    # WebSocket fan-out (pub/sub). AOF persistence so tokens survive restarts.
+    image: redis:7.4-alpine
+    container_name: isro-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-isro_redis_dev}"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD:-isro_redis_dev} ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: isro-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - ./pgadmin_servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
