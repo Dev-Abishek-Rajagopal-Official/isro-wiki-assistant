@@ -417,6 +417,11 @@ def chunk_document(md: str, cfg: ChunkConfig = DEFAULT_CONFIG) -> tuple[list[Chu
     return chunks, list(parents.values())
 
 
+def document_paths(docs: Path) -> list[Path]:
+    """The article files in a documents folder (the folder's README.md is documentation, not an article)."""
+    return sorted(p for p in docs.glob("*.md") if p.name.lower() != "readme.md")
+
+
 # --------------------------------------------------------------------------- CLI
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -430,7 +435,7 @@ def main() -> None:
     n_parents = 0
     with open(args.out / "chunks.jsonl", "w", encoding="utf-8") as cf, \
             open(args.out / "parents.jsonl", "w", encoding="utf-8") as pf:
-        for path in sorted(args.docs.glob("*.md")):  # one document in memory at a time
+        for path in document_paths(args.docs):  # one document in memory at a time
             chunks, parents = chunk_document(path.read_text(encoding="utf-8"))
             for c in chunks:
                 cf.write(json.dumps(asdict(c), ensure_ascii=False) + "\n")

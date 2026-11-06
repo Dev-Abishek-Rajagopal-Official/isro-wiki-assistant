@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#475569"/>
+    </marker>
+    <style>
+      .box{fill:#fff;stroke:#cbd5e1;stroke-width:1.5}
+      .hl{fill:#eef2ff;stroke:#818cf8;stroke-width:1.5}
+      .t{font-size:16px;font-weight:600;fill:#0f172a}
+      .s{font-size:12.5px;fill:#475569}
+      .m{font-size:12px;fill:#334155;font-family:Consolas, Menlo, monospace}
+      .l{stroke:#475569;stroke-width:1.6;fill:none;marker-end:url(#a)}
+      .d{stroke:#6366f1;stroke-width:1.6;fill:none;stroke-dasharray:6 4;marker-end:url(#a)}
+      .lt{font-size:11.5px;fill:#334155}
+    </style>
+  </defs>
+  <rect width="1200" height="700" fill="#f8fafc"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#0f172a">One question through the LangGraph agent</text>
+  <text x="40" y="68" class="s">The router may call several sub-agents in turn (max 5 hops). Every node streams events to the UI and writes AgentState to Postgres.</text>
+
+  <!-- input -->
+  <rect x="40" y="100" width="220" height="96" rx="10" class="box"/>
+  <text x="60" y="128" class="t">Question</text>
+  <text x="60" y="150" class="s">text, or voice → Azure</text>
+  <text x="60" y="168" class="s">Fast Transcription</text>
+  <text x="60" y="186" class="s">(phrase list: ISRO terms)</text>
+
+  <!-- router -->
+  <rect x="330" y="100" width="300" height="120" rx="10" class="hl"/>
+  <text x="350" y="128" class="t">Router (LLM, structured output)</text>
+  <text x="350" y="152" class="m">next_agent: rag | launch |</text>
+  <text x="350" y="170" class="m">  wikidata | celestrak | final</text>
+  <text x="350" y="190" class="m">task, reason</text>
+  <text x="350" y="208" class="s">sees the question + findings so far</text>
+
+  <!-- final -->
+  <rect x="740" y="100" width="420" height="120" rx="10" class="hl"/>
+  <text x="760" y="128" class="t">Final agent (LLM, streamed tokens)</text>
+  <text x="760" y="152" class="s">merges every sub-agent's findings into one answer</text>
+  <text x="760" y="172" class="s">numbered citations [1] [2] → sources list</text>
+  <text x="760" y="192" class="s">says "not in my sources" when nothing supports it</text>
+  <text x="760" y="210" class="s">conversation title: separate "title" LLM (API)</text>
+
+  <!-- subagent pattern -->
+  <rect x="40" y="270" width="1120" height="200" rx="14" fill="#f1f5f9" stroke="#e2e8f0"/>
+  <text x="60" y="296" class="t">Every sub-agent runs the same three steps</text>
+  <rect x="60" y="314" width="320" height="136" rx="10" class="box"/>
+  <text x="80" y="340" class="t">1 · Rewriter LLM</text>
+  <text x="80" y="362" class="s">turns the router's task into tool calls</text>
+  <text x="80" y="380" class="s">(search query, IDs, filters) as a</text>
+  <text x="80" y="398" class="s">structured ToolPlan</text>
+  <rect x="440" y="314" width="320" height="136" rx="10" class="box"/>
+  <text x="460" y="340" class="t">2 · MCP tool calls</text>
+  <text x="460" y="362" class="s">over streamable HTTP to its own server</text>
+  <text x="460" y="380" class="s">results compacted (12 KB) and logged</text>
+  <text x="460" y="398" class="s">with arguments + duration</text>
+  <rect x="820" y="314" width="320" height="136" rx="10" class="box"/>
+  <text x="840" y="340" class="t">3 · Generator LLM</text>
+  <text x="840" y="362" class="s">writes this agent's findings with</text>
+  <text x="840" y="380" class="s">[S1] source markers, only from the</text>
+  <text x="840" y="398" class="s">tool results → AgentState</text>
+  <path d="M380 382 H436" class="l"/>
+  <path d="M760 382 H816" class="l"/>
+
+  <!-- agents row -->
+  <rect x="40" y="510" width="265" height="100" rx="10" class="box"/>
+  <text x="60" y="538" class="t">Knowledge base</text>
+  <text x="60" y="560" class="s">468 Wikipedia articles</text>
+  <text x="60" y="578" class="s">Qdrant hybrid (dense + BM25,</text>
+  <text x="60" y="596" class="s">RRF) top 5 passages</text>
+  <rect x="325" y="510" width="265" height="100" rx="10" class="box"/>
+  <text x="345" y="538" class="t">Launch schedule</text>
+  <text x="345" y="560" class="s">Launch Library 2: upcoming</text>
+  <text x="345" y="578" class="s">and past ISRO launches,</text>
+  <text x="345" y="596" class="s">rockets, pads, missions</text>
+  <rect x="610" y="510" width="265" height="100" rx="10" class="box"/>
+  <text x="630" y="538" class="t">Wikidata facts</text>
+  <text x="630" y="560" class="s">structured facts: launch dates,</text>
+  <text x="630" y="578" class="s">operators, mass, COSPAR IDs</text>
+  <text x="630" y="596" class="s">via SPARQL</text>
+  <rect x="895" y="510" width="265" height="100" rx="10" class="box"/>
+  <text x="915" y="538" class="t">Satellite tracker</text>
+  <text x="915" y="560" class="s">CelesTrak SATCAT + orbital</text>
+  <text x="915" y="578" class="s">elements: is it still in orbit,</text>
+  <text x="915" y="596" class="s">decayed, which orbit</text>
+
+  <!-- arrows -->
+  <path d="M260 148 H326" class="l"/>
+  <path d="M630 160 H736" class="l"/><text x="664" y="150" class="lt">= final</text>
+  <path d="M480 220 V266" class="l"/><text x="490" y="250" class="lt">next_agent = a sub-agent</text>
+  <path d="M600 470 V506" class="l"/>
+  <path d="M1120 270 V240 H590 V224" class="d"/><text x="900" y="236" class="lt">findings back to the router</text>
+
+  <text x="40" y="650" class="s">Example: "Which rocket launched Cartosat-3 and is it still in orbit?" → Router → Knowledge base (PSLV-C47) → Router → Satellite tracker (CelesTrak: in orbit) → Router → Final answer with 3 citations.</text>
+  <text x="40" y="672" class="s">Each role (router, 4×rewriter, 4×generator, final, title) can use its own model via MODEL_&lt;ROLE&gt;; tokens, latency and rate-limit headroom are recorded per call.</text>
+</svg>

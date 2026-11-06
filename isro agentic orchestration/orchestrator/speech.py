@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 import re
 from functools import lru_cache
 
@@ -16,6 +17,7 @@ import httpx
 
 from .config import ROOT, get_settings
 
+log = logging.getLogger(__name__)
 API_VERSION = "2025-10-15"  # phraseList needs this version (2024-11-15 rejects it)
 MAX_PHRASES = 400
 CORE_PHRASES = ["ISRO", "PSLV", "GSLV", "LVM3", "SSLV", "Chandrayaan", "Mangalyaan", "Gaganyaan", "Aditya-L1",
@@ -42,22 +44,51 @@ def phrase_list() -> list[str]:
     return out[:MAX_PHRASES]
 
 
+class SpeechError(RuntimeError):
+    """A transcription problem the user can act on - str(error) is a message meant for the user."""
+
+
+NO_SPEECH = ("I couldn't hear a question in that recording. Check that the right microphone is selected and "
+             "allowed in the browser, speak for a second or two, then try again - or type your question.")
+
+
+def _no_language(r: httpx.Response) -> bool:
+    return r.status_code == 422 and "NoLanguageIdentified" in r.text
+
+
 async def transcribe(audio: bytes, filename: str = "audio.wav", content_type: str = "audio/wav") -> dict:
-    """Returns {"text", "duration_ms", "phrases"}; raises RuntimeError with a readable message on failure."""
+    """Returns {"text", "duration_ms", "phrases"}; raises SpeechError (user-facing message) on failure."""
     s = get_settings()
     if not (s.speech_endpoint and s.speech_key):
-        raise RuntimeError("Set SPEECH_ENDPOINT and SPEECH_KEY in .env")
+        raise SpeechError("Voice questions are not configured on this server (SPEECH_ENDPOINT / SPEECH_KEY).")
     if not audio:
-        raise RuntimeError("Empty audio")
+        raise SpeechError(NO_SPEECH)
     url = f"{s.speech_endpoint}/speechtotext/transcriptions:transcribe"
-    definition = {"locales": list(s.speech_locales), "phraseList": {"phrases": phrase_list()}}
+    locales = list(s.speech_locales)
+    phrases = phrase_list()
+
     async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=15)) as client:
-        r = await client.post(url, params={"api-version": API_VERSION},
-                              headers={"Ocp-Apim-Subscription-Key": s.speech_key},
-                              files={"audio": (filename, audio, content_type)},
-                              data={"definition": json.dumps(definition)})
+        async def post(locs: list[str]) -> httpx.Response:
+            definition = {"locales": locs, "phraseList": {"phrases": phrases}}
+            return await client.post(url, params={"api-version": API_VERSION},
+                                     headers={"Ocp-Apim-Subscription-Key": s.speech_key},
+                                     files={"audio": (filename, audio, content_type)},
+                                     data={"definition": json.dumps(definition)})
+
+        r = await post(locales)
+        # With several locales Azure first identifies the language and gives up on short / quiet clips.
+        # Our locales are English variants, so transcribing with the first one alone is the right fallback.
+        if _no_language(r) and len(locales) > 1:
+            log.info("speech: no language identified with %s, retrying with %s", locales, locales[:1])
+            r = await post(locales[:1])
+
+    if _no_language(r):
+        raise SpeechError(NO_SPEECH)
     if r.status_code != 200:
-        raise RuntimeError(f"Azure Speech error HTTP {r.status_code}: {r.text[:300]}")
+        log.warning("speech: Azure HTTP %s: %s", r.status_code, r.text[:300])
+        raise SpeechError(f"Speech-to-text failed (Azure HTTP {r.status_code}). Please try again or type your question.")
     body = r.json()
     text = " ".join(p.get("text", "") for p in body.get("combinedPhrases", [])).strip()
-    return {"text": text, "duration_ms": body.get("durationMilliseconds"), "phrases": len(definition["phraseList"]["phrases"])}
+    if not text:
+        raise SpeechError(NO_SPEECH)
+    return {"text": text, "duration_ms": body.get("durationMilliseconds"), "phrases": len(phrases)}

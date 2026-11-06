@@ -35,6 +35,7 @@ import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.encoders import jsonable_encoder
+from starlette.websockets import WebSocketDisconnected  # send() after the client closed
 
 from app.api.deps import AuthError, AuthUser, authenticate_token
 from app.core.config import get_settings
@@ -138,12 +139,14 @@ class Connection:
         except ThreadBusy:
             return await self.send({"type": "busy", "thread_id": str(thread.id), "client_msg_id": cid,
                                     "data": {"error": "a run is already in progress on this thread"}})
-        await self.subscription.add_thread(str(thread.id))   # receive this run's messages via pub/sub
-        await self.send({"type": "accepted", "client_msg_id": cid, "run_id": run_id, "thread_id": str(thread.id)})
+        # Start the run before telling the client: once reserved it must execute (and release the thread lock)
+        # even if this socket drops right now - the client catches up from the stored events on reconnect.
         task = asyncio.create_task(runs.execute(run_id=run_id, user_id=self.user.id, thread_id=thread.id,
                                                 question=question, audio=audio), name=f"run-{run_id}")
         self.tasks.add(task)
         task.add_done_callback(self.tasks.discard)
+        await self.subscription.add_thread(str(thread.id))   # receive this run's messages via pub/sub
+        await self.send({"type": "accepted", "client_msg_id": cid, "run_id": run_id, "thread_id": str(thread.id)})
 
     async def subscribe(self, msg: dict) -> None:
         thread = await self.owned_thread(msg.get("thread_id"))
@@ -189,10 +192,12 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 continue
             try:
                 await conn.handle(msg)
+            except (WebSocketDisconnect, WebSocketDisconnected):
+                raise                                      # the client is gone - nothing to report to
             except Exception as e:  # noqa: BLE001 - one bad message must not kill the socket
                 log.exception("ws message failed")
                 await conn.error(f"{type(e).__name__}: {str(e)[:200]}")
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, WebSocketDisconnected):
         pass
     finally:
         # Runs keep going after a disconnect (results are stored); only the live forwarding stops.

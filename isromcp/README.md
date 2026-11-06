@@ -16,6 +16,9 @@ the last good answer is returned with a `warning`.
 
 ## Setup
 
+In the full stack all four servers run in the `mcp` container (`python run_http_servers.py --host 0.0.0.0`,
+ports 8101–8104 on the compose network) and the agent reaches them at `MCP_HOST=mcp`. Standalone:
+
 ```
 uv sync
 copy .env.example .env        # set MCP_CONTACT (URL or email) - Wikidata returns 403 without it

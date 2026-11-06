@@ -40,7 +40,8 @@ class Settings:
 
     # Files
     data_dir: Path = HERE / "data"
-    embedding_cache: Path = HERE / "data" / "embedding_cache.sqlite"
+    # EMBEDDING_CACHE lets docker compose keep the cache on a volume
+    embedding_cache: Path = Path(os.getenv("EMBEDDING_CACHE") or HERE / "data" / "embedding_cache.sqlite")
 
 
 def get_settings() -> Settings:

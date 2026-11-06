@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 460" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#475569"/>
+    </marker>
+    <style>
+      .box{fill:#fff;stroke:#cbd5e1;stroke-width:1.5}
+      .dec{fill:#fef9c3;stroke:#eab308;stroke-width:1.5}
+      .ok{fill:#dcfce7;stroke:#22c55e;stroke-width:1.5}
+      .t{font-size:14.5px;font-weight:600;fill:#0f172a}
+      .s{font-size:12px;fill:#475569}
+      .l{stroke:#475569;stroke-width:1.6;fill:none;marker-end:url(#a)}
+      .f{stroke:#ef4444;stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#a)}
+      .lt{font-size:11.5px;fill:#334155}
+    </style>
+  </defs>
+  <rect width="1200" height="460" fill="#f8fafc"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#0f172a">setup.ps1 / setup.sh – from a fresh clone to a working app</text>
+  <text x="40" y="68" class="s">Each step must succeed before the next starts; any failure stops the script with the reason. Re-running skips work that is already done.</text>
+
+  <rect x="40" y="100" width="170" height="90" rx="10" class="box"/>
+  <text x="56" y="126" class="t">1 Docker</text>
+  <text x="56" y="148" class="s">installed + running,</text>
+  <text x="56" y="166" class="s">compose v2</text>
+
+  <rect x="230" y="100" width="170" height="90" rx="10" class="box"/>
+  <text x="246" y="126" class="t">2 .env</text>
+  <text x="246" y="148" class="s">generate passwords +</text>
+  <text x="246" y="166" class="s">JWT; check Azure keys</text>
+
+  <rect x="420" y="100" width="170" height="90" rx="10" class="box"/>
+  <text x="436" y="126" class="t">3 Build images</text>
+  <text x="436" y="148" class="s">rag, mcp, api (uv),</text>
+  <text x="436" y="166" class="s">frontend (node → nginx)</text>
+
+  <rect x="610" y="100" width="170" height="90" rx="10" class="box"/>
+  <text x="626" y="126" class="t">4 Infrastructure</text>
+  <text x="626" y="148" class="s">Postgres, Redis, Qdrant</text>
+  <text x="626" y="166" class="s">wait until healthy</text>
+
+  <path d="M800 145 L880 100 L960 145 L880 190 Z" class="dec"/>
+  <text x="880" y="141" text-anchor="middle" class="t">WIKI_</text>
+  <text x="880" y="159" text-anchor="middle" class="t">DOWNLOAD?</text>
+
+  <rect x="990" y="100" width="170" height="90" rx="10" class="box"/>
+  <text x="1006" y="126" class="t">5a wiki job</text>
+  <text x="1006" y="148" class="s">fetch only articles not</text>
+  <text x="1006" y="166" class="s">downloaded yet</text>
+
+  <rect x="800" y="250" width="360" height="80" rx="10" class="box"/>
+  <text x="816" y="276" class="t">5b Verify documents</text>
+  <text x="816" y="298" class="s">every article in wiki_metadata.csv is present with front</text>
+  <text x="816" y="316" class="s">matter (false → uses the committed 468 articles directly)</text>
+
+  <rect x="420" y="250" width="340" height="80" rx="10" class="box"/>
+  <text x="436" y="276" class="t">6 ingest job → Qdrant</text>
+  <text x="436" y="298" class="s">chunk → embed → index → verify counts + test query;</text>
+  <text x="436" y="316" class="s">skipped when the same chunks are already indexed</text>
+
+  <rect x="40" y="250" width="340" height="80" rx="10" class="box"/>
+  <text x="56" y="276" class="t">7 Application</text>
+  <text x="56" y="298" class="s">mcp → api (Alembic migrations) → frontend,</text>
+  <text x="56" y="316" class="s">pgAdmin; wait for container health checks</text>
+
+  <rect x="40" y="360" width="1120" height="70" rx="10" class="ok"/>
+  <text x="56" y="388" class="t">8 /api/health = ok for database, redis, agent, MCP servers, qdrant, llm, speech → prints the URLs</text>
+  <text x="56" y="410" class="s">Open http://localhost:3000, create an account and ask. Admin: docker compose exec api .venv/bin/python scripts/create_admin.py</text>
+
+  <path d="M210 145 H226" class="l"/>
+  <path d="M400 145 H416" class="l"/>
+  <path d="M590 145 H606" class="l"/>
+  <path d="M780 145 H798" class="l"/>
+  <path d="M960 145 H986" class="l"/><text x="962" y="136" class="lt">true</text>
+  <path d="M1075 190 V246" class="l"/>
+  <path d="M880 190 V246" class="l"/><text x="888" y="226" class="lt">false</text>
+  <path d="M800 290 H764" class="l"/>
+  <path d="M420 290 H384" class="l"/>
+  <path d="M210 330 V356" class="l"/>
+</svg>

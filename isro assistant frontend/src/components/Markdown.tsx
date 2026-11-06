@@ -12,6 +12,22 @@ export function linkCitations(text: string): string {
   return text.replace(/\[(\d{1,3})\](?!\()/g, "[$1](#cite-$1)");
 }
 
+/**
+ * The sources to show as cards under an answer: only the ones it cites, in citation order - a refusal cites
+ * nothing, so it shows no (irrelevant) sources. Duplicates are removed per section (title + url), not per
+ * article - several sections of one article are different sources.
+ */
+export function citedSources(answer: string, sources: Source[]): Source[] {
+  const numbered = sources.map((s, i) => ({ ...s, n: s.n ?? i + 1 }));
+  const cited = [...new Set([...answer.matchAll(/\[(\d{1,3})\](?!\()/g)].map((m) => Number(m[1])))];
+  const picked = cited.map((n) => numbered.find((s) => s.n === n)).filter((s): s is (typeof numbered)[number] => !!s);
+  const seen = new Set<string>();
+  return picked.filter((s) => {
+    const key = `${s.title ?? ""}|${s.url ?? ""}`;
+    return s.url && !seen.has(key) && seen.add(key);
+  });
+}
+
 export function Markdown({ text, sources = [], className }: { text: string; sources?: Source[]; className?: string }) {
   const byN = new Map(sources.map((s, i) => [s.n ?? i + 1, s]));
   return (

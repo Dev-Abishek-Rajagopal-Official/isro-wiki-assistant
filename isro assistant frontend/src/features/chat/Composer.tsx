@@ -5,7 +5,7 @@
 import { Mic, SendHorizontal, Square, X } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { cx } from "../../components/ui";
-import { VoiceRecorder } from "../../lib/audio";
+import { RecordingProblem, VoiceRecorder } from "../../lib/audio";
 
 export function Composer({ busy, disabled, onSend, onVoice, onStop, placeholder }: {
   busy: boolean; disabled?: boolean; placeholder?: string;
@@ -65,8 +65,8 @@ export function Composer({ busy, disabled, onSend, onVoice, onStop, placeholder 
     try {
       const b64 = await recorder.current!.stop();
       onVoice(b64);
-    } catch {
-      setMicError("Couldn't process the recording - please try again.");
+    } catch (e) {
+      setMicError(e instanceof RecordingProblem ? e.message : "Couldn't process the recording - please try again.");
     } finally {
       setPreparing(false);
     }

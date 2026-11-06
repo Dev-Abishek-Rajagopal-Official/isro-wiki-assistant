@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#475569"/>
+    </marker>
+    <style>
+      .box{fill:#fff;stroke:#cbd5e1;stroke-width:1.5}
+      .t{font-size:15px;font-weight:600;fill:#0f172a}
+      .s{font-size:12.5px;fill:#475569}
+      .m{font-size:11.5px;fill:#334155;font-family:Consolas, Menlo, monospace}
+      .l{stroke:#475569;stroke-width:1.6;fill:none;marker-end:url(#a)}
+      .tag{font-size:11px;font-weight:600;letter-spacing:.06em;fill:#64748b}
+    </style>
+  </defs>
+  <rect width="1200" height="520" fill="#f8fafc"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#0f172a">Knowledge base: from Wikipedia to hybrid search</text>
+  <text x="40" y="68" class="s">Ingestion runs once in the setup script (the "wiki" and "ingest" jobs); retrieval runs on every knowledge-base tool call.</text>
+
+  <text x="40" y="104" class="tag">INGESTION</text>
+  <rect x="40" y="116" width="210" height="150" rx="10" class="box"/>
+  <text x="58" y="142" class="t">1 · Crawl</text>
+  <text x="58" y="164" class="s">MediaWiki API, 7 root</text>
+  <text x="58" y="182" class="s">categories, depth 3,</text>
+  <text x="58" y="200" class="s">off-topic filter</text>
+  <text x="58" y="224" class="m">487 titles → 468 kept</text>
+  <text x="58" y="244" class="m">WIKI_DOWNLOAD=true</text>
+
+  <rect x="275" y="116" width="210" height="150" rx="10" class="box"/>
+  <text x="293" y="142" class="t">2 · Clean</text>
+  <text x="293" y="164" class="s">rendered HTML → Markdown</text>
+  <text x="293" y="182" class="s">infobox → "Key facts"</text>
+  <text x="293" y="200" class="s">tables → Markdown tables</text>
+  <text x="293" y="224" class="m">front matter: url,</text>
+  <text x="293" y="244" class="m">revid, categories</text>
+
+  <rect x="510" y="116" width="210" height="150" rx="10" class="box"/>
+  <text x="528" y="142" class="t">3 · Verify</text>
+  <text x="528" y="164" class="s">every metadata row has</text>
+  <text x="528" y="182" class="s">its .md + front matter;</text>
+  <text x="528" y="200" class="s">setup stops otherwise</text>
+  <text x="528" y="224" class="m">build_knowledge_base</text>
+  <text x="528" y="244" class="m">  --verify-docs</text>
+
+  <rect x="745" y="116" width="210" height="150" rx="10" class="box"/>
+  <text x="763" y="142" class="t">4 · Chunk</text>
+  <text x="763" y="164" class="s">structure-aware, ~350</text>
+  <text x="763" y="182" class="s">tokens; breadcrumb prefix</text>
+  <text x="763" y="200" class="s">"Article &gt; Section"; facts</text>
+  <text x="763" y="218" class="s">and tables kept whole</text>
+  <text x="763" y="244" class="m">chunks + parents.jsonl</text>
+
+  <rect x="980" y="116" width="180" height="150" rx="10" class="box"/>
+  <text x="998" y="142" class="t">5 · Index</text>
+  <text x="998" y="164" class="s">dense: Azure</text>
+  <text x="998" y="182" class="s">text-embedding-3-large</text>
+  <text x="998" y="200" class="s">sparse: BM25 (IDF)</text>
+  <text x="998" y="224" class="m">SQLite embed cache,</text>
+  <text x="998" y="244" class="m">skip if unchanged</text>
+
+  <path d="M250 191 H271" class="l"/>
+  <path d="M485 191 H506" class="l"/>
+  <path d="M720 191 H741" class="l"/>
+  <path d="M955 191 H976" class="l"/>
+
+  <text x="40" y="314" class="tag">RETRIEVAL (knowledge-base MCP server)</text>
+  <rect x="40" y="326" width="250" height="120" rx="10" class="box"/>
+  <text x="58" y="352" class="t">Rewritten query</text>
+  <text x="58" y="374" class="s">from the rewriter LLM,</text>
+  <text x="58" y="392" class="s">e.g. "Cartosat-3 launch</text>
+  <text x="58" y="410" class="s">vehicle PSLV-C47"</text>
+
+  <rect x="330" y="326" width="300" height="120" rx="10" class="box"/>
+  <text x="348" y="352" class="t">Qdrant hybrid query</text>
+  <text x="348" y="374" class="s">prefetch 30 dense + 30 BM25</text>
+  <text x="348" y="392" class="s">Reciprocal Rank Fusion → top 5</text>
+  <text x="348" y="410" class="s">no reranker (CPU rerankers too</text>
+  <text x="348" y="428" class="s">slow for the gain, see evals)</text>
+
+  <rect x="670" y="326" width="250" height="120" rx="10" class="box"/>
+  <text x="688" y="352" class="t">Guardrail</text>
+  <text x="688" y="374" class="s">best dense score &lt; ~0.5</text>
+  <text x="688" y="392" class="s">→ "not in the documents"</text>
+  <text x="688" y="410" class="s">(out-of-scope questions,</text>
+  <text x="688" y="428" class="s">e.g. NASA Apollo)</text>
+
+  <rect x="960" y="326" width="200" height="120" rx="10" class="box"/>
+  <text x="978" y="352" class="t">Passages</text>
+  <text x="978" y="374" class="s">content + breadcrumb</text>
+  <text x="978" y="392" class="s">+ URL + score</text>
+  <text x="978" y="410" class="s">→ generator LLM</text>
+  <text x="978" y="428" class="s">→ citations in UI</text>
+
+  <path d="M290 386 H326" class="l"/>
+  <path d="M630 386 H666" class="l"/>
+  <path d="M920 386 H956" class="l"/>
+
+  <text x="40" y="488" class="s">Why this configuration: rag_evals compared fixed vs structure-aware chunking (200/350/600 tokens), with/without breadcrumb, dense vs BM25 vs hybrid and rerankers –</text>
+  <text x="40" y="506" class="s">struct_350 + breadcrumb + hybrid won: recall@5 0.98 with 24% less context; answer accuracy 0.54 → 0.88 vs no RAG (isro rag/rag_evals/results).</text>
+</svg>

@@ -1,0 +1,20 @@
+# Keep images small and never bake secrets or local data into them.
+.git
+**/.env
+**/.env.*
+!**/.env.example
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.cache
+**/qdrant_storage
+**/qdrant_data
+**/pg_data
+**/redis_data
+isro rag/data/embedding_cache.sqlite
+isro rag/rag_evals/data
+isro assistant frontend
+docs
+*.log
+**/README.md

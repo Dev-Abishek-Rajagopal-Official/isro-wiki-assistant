@@ -39,7 +39,26 @@ export function toBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-/** Decode any recorded blob and resample to 16 kHz mono. */
+/** A recording that is not worth sending; the message tells the user what to do. */
+export class RecordingProblem extends Error {}
+
+export const MIN_SECONDS = 0.6;
+export const SILENCE_PEAK = 0.015;   // muted / wrong microphone stays far below this; quiet speech is above
+
+/** Why a recording should not be sent (too short or silent), or null if it looks fine. */
+export function recordingProblem(samples: Float32Array, sampleRate = TARGET_RATE): string | null {
+  if (samples.length < MIN_SECONDS * sampleRate) {
+    return "That recording was too short - keep the microphone on while you ask, then stop it.";
+  }
+  let peak = 0;
+  for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+  if (peak < SILENCE_PEAK) {
+    return "No sound was recorded - check that the right microphone is selected, not muted and allowed for this site.";
+  }
+  return null;
+}
+
+/** Decode any recorded blob and resample to 16 kHz mono. Throws RecordingProblem for short / silent clips. */
 export async function blobToWav(blob: Blob): Promise<ArrayBuffer> {
   const ctx = new AudioContext();
   try {
@@ -51,7 +70,10 @@ export async function blobToWav(blob: Blob): Promise<ArrayBuffer> {
     src.connect(offline.destination);
     src.start();
     const rendered = await offline.startRendering();
-    return encodeWav(rendered.getChannelData(0), TARGET_RATE);
+    const samples = rendered.getChannelData(0);
+    const problem = recordingProblem(samples, TARGET_RATE);
+    if (problem) throw new RecordingProblem(problem);
+    return encodeWav(samples, TARGET_RATE);
   } finally {
     void ctx.close();
   }

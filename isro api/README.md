@@ -6,6 +6,16 @@ full history (events + AgentState snapshots per step), token usage, health. Uses
 
 ## Run
 
+In the full stack the `api` container runs `alembic upgrade head` and then `run.py --host 0.0.0.0`; the frontend's
+nginx forwards `/api/*` to it. Start everything with `setup.ps1` / `setup.sh` at the repo root; API docs at
+http://localhost:8000/docs. Create the admin account (its email must be in `ADMIN_EMAILS`):
+
+```
+docker compose exec api .venv/bin/python scripts/create_admin.py
+```
+
+Standalone development:
+
 ```
 # infrastructure (in ../isro agentic orchestration): Postgres :5432, Redis :6379, pgAdmin :5050
 docker compose up -d

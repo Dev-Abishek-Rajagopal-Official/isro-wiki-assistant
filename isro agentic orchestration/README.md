@@ -26,7 +26,12 @@ State (`orchestrator/state.py`): conversation `messages` (memory per `thread_id`
 (`next_agent`, `task`, `reason`, `rag_agent`, `launch_agent`, `wikidata_agent`, `celestrak_agent`, `final_agent`),
 `sources` per agent, `visited`, `hops`.
 
+![Agent workflow](../docs/images/agent-workflow.svg)
+
 ## Run
+
+In the full stack this package runs **inside the API container** (`isro api` installs it as a dependency) –
+`setup.ps1` / `setup.sh` at the repo root start everything. To work on the agent alone:
 
 ```
 docker compose up -d                                   # Postgres :5432 + pgAdmin http://localhost:5050

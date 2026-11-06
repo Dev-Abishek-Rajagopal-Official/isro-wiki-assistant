@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { linkCitations } from "../components/Markdown";
+import { citedSources, linkCitations } from "../components/Markdown";
+import { isTechnicalError } from "../features/chat/Turn";
 import { buildSteps, summarizeResult } from "../features/steps/buildSteps";
 import { applyMessage, emptyRun, type LiveRun } from "../features/runs/runsSlice";
-import { encodeWav } from "../lib/audio";
+import { encodeWav, recordingProblem } from "../lib/audio";
 import { storedToMessage } from "../lib/events";
 import type { WsMessage } from "../lib/types";
 
@@ -116,6 +117,31 @@ describe("helpers", () => {
   it("turns [n] citations into links but leaves real links alone", () => {
     expect(linkCitations("Fact [1][2].")).toBe("Fact [1](#cite-1)[2](#cite-2).");
     expect(linkCitations("[docs](https://x)")).toBe("[docs](https://x)");
+  });
+
+  it("shows the cited sources, per section, in citation order", () => {
+    const url = "https://en.wikipedia.org/wiki/Chandrayaan-3";
+    const sources = [
+      { n: 1, title: "Chandrayaan-3 > Objectives", url },
+      { n: 2, title: "Chandrayaan-2 > Overview", url: "https://en.wikipedia.org/wiki/Chandrayaan-2" },
+      { n: 5, title: "Chandrayaan-3 > Launch", url },
+    ];
+    // same article, two sections: both kept; uncited [2] left out
+    expect(citedSources("Launched on LVM3 [5]. Objectives [1][5].", sources).map((s) => s.n)).toEqual([5, 1]);
+    expect(citedSources("The sources don't cover this.", sources)).toHaveLength(0);   // refusal: no chips
+  });
+
+  it("rejects short or silent recordings before upload", () => {
+    const speech = Float32Array.from({ length: 16000 }, (_, i) => 0.3 * Math.sin(i / 5));
+    expect(recordingProblem(speech)).toBeNull();
+    expect(recordingProblem(new Float32Array(16000))).toMatch(/No sound was recorded/);   // 1 s of silence
+    expect(recordingProblem(speech.subarray(0, 4000))).toMatch(/too short/);              // 0.25 s
+  });
+
+  it("tells user-facing errors from technical ones", () => {
+    expect(isTechnicalError("RuntimeError: Azure Speech error HTTP 500")).toBe(true);
+    expect(isTechnicalError("TimeoutError: read timed out")).toBe(true);
+    expect(isTechnicalError("I couldn't hear a question in that recording. Check …")).toBe(false);
   });
 
   it("maps stored events to WebSocket messages", () => {

@@ -1,14 +1,13 @@
 /** One question + answer: user bubble, live stepper, streamed Markdown answer with citations and sources. */
 import { AlertTriangle, ExternalLink, Mic, Rocket } from "lucide-react";
-import { Markdown } from "../../components/Markdown";
+import { citedSources, Markdown } from "../../components/Markdown";
 import { Badge, fmt } from "../../components/ui";
 import type { Run, Source } from "../../lib/types";
 import type { LiveRun } from "../runs/runsSlice";
 import { StepList } from "../steps/StepList";
 
-function SourceCards({ sources }: { sources: Source[] }) {
-  const seen = new Set<string>();
-  const unique = sources.filter((s) => s.url && !seen.has(s.url) && seen.add(s.url));
+function SourceCards({ sources, answer }: { sources: Source[]; answer: string }) {
+  const unique = citedSources(answer, sources);
   if (!unique.length) return null;
   return (
     <div className="mt-3 flex flex-wrap gap-2">
@@ -22,6 +21,11 @@ function SourceCards({ sources }: { sources: Source[] }) {
       ))}
     </div>
   );
+}
+
+/** Server errors look like "RuntimeError: …"; messages meant for the user (e.g. speech problems) do not. */
+export function isTechnicalError(error: string): boolean {
+  return /^[A-Za-z_.]*(Error|Exception|Timeout)\b:/.test(error);
 }
 
 export function Turn({ run, live, threadId }: { run?: Run; live?: LiveRun; threadId: string }) {
@@ -53,13 +57,15 @@ export function Turn({ run, live, threadId }: { run?: Run; live?: LiveRun; threa
             <div>
               <Markdown text={answer} sources={live?.sources} />
               {streaming && <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-brand-500 align-middle" />}
-              {live?.sources && live.status === "succeeded" && <SourceCards sources={live.sources} />}
+              {live?.sources && live.status === "succeeded" && <SourceCards sources={live.sources} answer={answer} />}
             </div>
           )}
           {status === "failed" && (
             <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>Sorry, this question couldn't be answered{error ? `: ${error}` : "."} Please try again.</span>
+              <span>{error && !isTechnicalError(error)
+                ? error   /* already written for the user, e.g. "I couldn't hear a question…" */
+                : <>Sorry, this question couldn't be answered{error ? `: ${error}` : "."} Please try again.</>}</span>
             </div>
           )}
           {status === "cancelled" && <Badge tone="slate">Stopped</Badge>}

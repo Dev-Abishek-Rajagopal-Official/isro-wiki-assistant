@@ -23,7 +23,7 @@ from pathlib import Path
 
 from common import EVAL_SET, LLM, RAG_DIR, contains_evidence, log, normalize, record
 
-from chunking import est_tokens, parse_blocks, parse_front_matter  # noqa: E402
+from chunking import document_paths, est_tokens, parse_blocks, parse_front_matter  # noqa: E402
 
 DOCS = RAG_DIR.parent / "wiki documents"
 
@@ -107,7 +107,7 @@ def main() -> None:
     random.seed(args.seed)
 
     mix = {k: float(v) for k, v in (x.split(":") for x in args.mix.split(","))}
-    docs = sorted(DOCS.glob("*.md"))
+    docs = document_paths(DOCS)
     random.shuffle(docs)
     pools: dict[str, list[dict]] = {k: [] for k in mix}
     for d in docs:  # one passage per type per document -> questions spread over many articles

@@ -18,7 +18,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from orchestrator.speech import transcribe
+from orchestrator.speech import SpeechError, transcribe
 from sqlalchemy import update
 
 from app.db.models import Conversation, LlmCall, Run, Thread
@@ -75,9 +75,7 @@ class RunService:
         try:
             if audio:
                 await self._publish(thread_id, {"type": "transcribing", "run_id": run_id})
-                transcript = await transcribe(*audio)
-                if not transcript["text"]:
-                    raise ValueError("no speech recognised in the audio")
+                transcript = await transcribe(*audio)       # raises SpeechError if nothing was heard
                 question = transcript["text"]
                 result["transcript"] = transcript
                 await self._publish(thread_id, {"type": "transcribed", "run_id": run_id, "data": transcript})
@@ -92,6 +90,10 @@ class RunService:
             result["status"] = "cancelled"
             await self._publish(thread_id, {"type": "run_cancelled", "run_id": run_id})
             raise
+        except SpeechError as e:                         # the user can fix this: show the message as is
+            result["error"] = str(e)
+            log.info("run %s: speech not usable: %s", run_id, e)
+            await self._publish(thread_id, {"type": "error", "run_id": run_id, "data": {"error": result["error"]}})
         except Exception as e:  # noqa: BLE001
             result["error"] = f"{type(e).__name__}: {str(e)[:500]}"
             log.exception("run %s failed", run_id)

@@ -33,6 +33,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import re
 import time
 import unicodedata
@@ -45,8 +46,10 @@ import requests
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 API = "https://en.wikipedia.org/w/api.php"
-# Wikipedia asks API clients to identify themselves; replace with your own contact.
-HEADERS = {"User-Agent": "isro-rag-assignment/0.2 (contact: your-email@example.com)"}
+# Wikimedia asks API clients to identify themselves with a contact (URL or email): set WIKI_CONTACT
+# (or MCP_CONTACT, which the MCP servers use for the same policy).
+CONTACT = os.getenv("WIKI_CONTACT") or os.getenv("MCP_CONTACT") or "https://github.com/Dev-Abishek-Rajagopal-Official/isro-wiki-assistant"
+HEADERS = {"User-Agent": f"isro-wiki-assistant/1.0 ({CONTACT})"}
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_OUT = HERE.parent / "wiki documents"
@@ -665,7 +668,8 @@ def main() -> None:
     out: Path = args.out
     out.mkdir(parents=True, exist_ok=True)
     if args.fresh:
-        for p in list(out.glob("*.md")) + [out / META_CSV, out / SKIP_CSV]:
+        articles = [p for p in out.glob("*.md") if p.name.lower() != "readme.md"]
+        for p in articles + [out / META_CSV, out / SKIP_CSV]:
             p.unlink(missing_ok=True)
 
     if not args.keywords_only:

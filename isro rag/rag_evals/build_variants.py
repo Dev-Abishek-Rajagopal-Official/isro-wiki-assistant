@@ -18,6 +18,7 @@ import time
 from common import DATA_DIR, RAG_DIR, log, record
 from variants import VARIANTS, chunk_for_variant
 
+from chunking import document_paths  # noqa: E402
 from config import get_settings  # noqa: E402
 from embeddings import BM25Embedder, build_dense_embedder  # noqa: E402
 from index import build_index, get_client  # noqa: E402
@@ -42,7 +43,7 @@ def main() -> None:
         sizes, n_parents = [], 0
         with open(out / "chunks.jsonl", "w", encoding="utf-8") as cf, \
                 open(out / "parents.jsonl", "w", encoding="utf-8") as pf:
-            for path in sorted(DOCS.glob("*.md")):
+            for path in document_paths(DOCS):
                 chunks, parents = chunk_for_variant(v, path.read_text(encoding="utf-8"))
                 cf.writelines(json.dumps(c, ensure_ascii=False) + "\n" for c in chunks)
                 pf.writelines(json.dumps(p, ensure_ascii=False) + "\n" for p in parents)

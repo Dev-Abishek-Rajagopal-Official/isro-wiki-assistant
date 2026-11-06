@@ -4,6 +4,10 @@ React 19 + TypeScript (strict) + Vite 7 + Tailwind v4, Redux Toolkit + RTK Query
 
 ## Run
 
+In the full stack (`setup.ps1` / `setup.sh` at the repo root) the app is built into an nginx image
+(`Dockerfile`, `nginx.conf`) and served at **http://localhost:3000**; nginx proxies `/api` and the `/api/ws`
+WebSocket to the API container. For development with hot reload, run the stack and then:
+
 Prerequisites: the API (`../isro api`, port 8000) and its dependencies (Postgres, Redis, Qdrant, MCP servers) running.
 
 ```bash

@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#475569"/>
+    </marker>
+    <style>
+      .box{fill:#fff;stroke:#cbd5e1;stroke-width:1.5}
+      .t{font-size:16px;font-weight:600;fill:#0f172a}
+      .s{font-size:12.5px;fill:#475569}
+      .tag{font-size:11px;font-weight:600;letter-spacing:.06em;fill:#64748b}
+      .l{stroke:#475569;stroke-width:1.6;fill:none;marker-end:url(#a)}
+      .d{stroke:#94a3b8;stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#a)}
+      .lt{font-size:11.5px;fill:#334155}
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="#f8fafc"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#0f172a">ISRO Assistant – system architecture</text>
+  <text x="40" y="68" class="s">Everything runs from one docker-compose stack. The browser only talks to the frontend origin; nginx proxies /api (REST + WebSocket).</text>
+
+  <!-- zones -->
+  <rect x="30" y="90" width="1140" height="140" rx="14" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="48" y="112" class="tag">CLIENT</text>
+  <rect x="30" y="248" width="1140" height="200" rx="14" fill="#f5f3ff" stroke="#ddd6fe"/>
+  <text x="48" y="270" class="tag">APPLICATION (containers)</text>
+  <rect x="30" y="466" width="1140" height="140" rx="14" fill="#ecfdf5" stroke="#bbf7d0"/>
+  <text x="48" y="488" class="tag">DATA · VOLUMES</text>
+  <rect x="30" y="624" width="1140" height="116" rx="14" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="48" y="646" class="tag">EXTERNAL SERVICES</text>
+
+  <!-- client -->
+  <rect x="60" y="124" width="330" height="88" rx="10" class="box"/>
+  <text x="80" y="152" class="t">Browser</text>
+  <text x="80" y="174" class="s">text or voice question (16 kHz WAV)</text>
+  <text x="80" y="194" class="s">live steps, drawer, history, usage, admin</text>
+
+  <rect x="470" y="124" width="330" height="88" rx="10" class="box"/>
+  <text x="490" y="152" class="t">frontend  :3000</text>
+  <text x="490" y="174" class="s">React 19 + TS + Tailwind, Redux Toolkit</text>
+  <text x="490" y="194" class="s">nginx: static app, /api → api:8000 (+ WS)</text>
+
+  <!-- app -->
+  <rect x="60" y="290" width="400" height="140" rx="10" class="box"/>
+  <text x="80" y="318" class="t">api  :8000  (FastAPI)</text>
+  <text x="80" y="340" class="s">JWT auth (8 h access / 7 d refresh, rotation)</text>
+  <text x="80" y="360" class="s">conversations → threads → runs, WebSocket stream</text>
+  <text x="80" y="380" class="s">usage + admin analytics, LLM conversation titles</text>
+  <text x="80" y="400" class="s">Alembic migrations on start</text>
+  <text x="80" y="420" class="s">embeds the LangGraph agent ↓</text>
+
+  <rect x="500" y="290" width="300" height="140" rx="10" class="box"/>
+  <text x="520" y="318" class="t">LangGraph agent</text>
+  <text x="520" y="340" class="s">router → sub-agents → final answer</text>
+  <text x="520" y="360" class="s">every sub-agent: rewriter LLM →</text>
+  <text x="520" y="380" class="s">MCP tool calls → generator LLM</text>
+  <text x="520" y="400" class="s">AgentState checkpointed per step</text>
+  <text x="520" y="420" class="s">every event logged (agent_events)</text>
+
+  <rect x="840" y="290" width="300" height="140" rx="10" class="box"/>
+  <text x="860" y="318" class="t">mcp  :8101–8104 (FastMCP)</text>
+  <text x="860" y="340" class="s">8101 knowledge base (hybrid RAG)</text>
+  <text x="860" y="360" class="s">8102 Launch Library 2 (launches)</text>
+  <text x="860" y="380" class="s">8103 Wikidata (facts, SPARQL)</text>
+  <text x="860" y="400" class="s">8104 CelesTrak (orbits, status)</text>
+  <text x="860" y="420" class="s">streamable HTTP, cached responses</text>
+
+  <!-- data -->
+  <rect x="60" y="500" width="250" height="88" rx="10" class="box"/>
+  <text x="80" y="528" class="t">PostgreSQL 17</text>
+  <text x="80" y="550" class="s">users, conversations, runs, llm_calls</text>
+  <text x="80" y="570" class="s">checkpoints + agent_events</text>
+
+  <rect x="340" y="500" width="250" height="88" rx="10" class="box"/>
+  <text x="360" y="528" class="t">Redis 7</text>
+  <text x="360" y="550" class="s">refresh tokens, revocation, caches</text>
+  <text x="360" y="570" class="s">run locks, pub/sub WebSocket fan-out</text>
+
+  <rect x="620" y="500" width="250" height="88" rx="10" class="box"/>
+  <text x="640" y="528" class="t">Qdrant 1.20</text>
+  <text x="640" y="550" class="s">isro_chunks: dense + BM25 vectors</text>
+  <text x="640" y="570" class="s">isro_parents: section context</text>
+
+  <rect x="900" y="500" width="240" height="88" rx="10" class="box"/>
+  <text x="920" y="528" class="t">pgAdmin  :5050</text>
+  <text x="920" y="550" class="s">inspect DB, events, checkpoints</text>
+  <text x="920" y="570" class="s">(dev tool)</text>
+
+  <!-- external -->
+  <rect x="60" y="656" width="520" height="68" rx="10" class="box"/>
+  <text x="80" y="682" class="t">Azure AI Foundry</text>
+  <text x="80" y="704" class="s">chat LLM per role · text-embedding-3-large · Speech fast transcription</text>
+
+  <rect x="620" y="656" width="520" height="68" rx="10" class="box"/>
+  <text x="640" y="682" class="t">Public data APIs</text>
+  <text x="640" y="704" class="s">Launch Library 2 · Wikidata SPARQL · CelesTrak · Wikipedia (ingestion)</text>
+
+  <!-- arrows -->
+  <path d="M390 168 H466" class="l"/><text x="400" y="160" class="lt">HTTPS / WS</text>
+  <path d="M600 212 V250 H260 V286" class="l"/><text x="268" y="244" class="lt">/api → REST + WebSocket</text>
+  <path d="M460 360 H496" class="l"/>
+  <path d="M800 360 H836" class="l"/><text x="803" y="352" class="lt">MCP</text>
+  <path d="M160 430 V496" class="l"/>
+  <path d="M420 430 V496" class="l"/>
+  <path d="M990 430 V470 H745 V496" class="l"/><text x="880" y="464" class="lt">hybrid search</text>
+  <path d="M650 430 V450 H330 V652" class="d"/><text x="338" y="640" class="lt">LLM + speech</text>
+  <path d="M1080 430 V652" class="d"/><text x="1088" y="640" class="lt">APIs</text>
+  <path d="M970 300 V286" class="d" opacity="0"/>
+</svg>

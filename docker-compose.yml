@@ -1,0 +1,203 @@
+# The whole ISRO assistant in one stack. Normally started by setup.ps1 / setup.sh, which also runs the jobs.
+#
+#   infrastructure   postgres, redis, qdrant, pgadmin
+#   application      mcp (4 MCP servers) -> api (FastAPI + LangGraph agent) -> frontend (nginx + React)
+#   jobs (profile)   wiki    download / update the Wikipedia articles   (only when WIKI_DOWNLOAD=true)
+#                    ingest  verify docs -> chunk -> embed -> index into Qdrant -> verify
+#
+# All settings and secrets come from ./.env (copy .env.example). Data lives in named volumes.
+name: isro-assistant
+
+x-python: &python
+  build:
+    context: .
+    dockerfile: docker/python.Dockerfile
+  env_file: .env
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:17.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-isro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-isro_agent}
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
+    volumes: [pg_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-isro} -d ${POSTGRES_DB:-isro_agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}"]
+    ports: ["${REDIS_PORT:-6379}:6379"]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.0
+    restart: unless-stopped
+    ports: ["${QDRANT_PORT:-6333}:6333"]          # REST + dashboard at /dashboard
+    volumes: [qdrant_data:/qdrant/storage]
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports: ["${PGADMIN_PORT:-5050}:80"]
+    volumes:
+      - type: bind
+        source: ./docker/pgadmin_servers.json
+        target: /pgadmin4/servers.json
+        read_only: true
+    configs:
+      # pre-filled password for the registered server -> one click to browse the database
+      # libpq ignores a password file readable by others: owner pgadmin (5050), mode 0600.
+      # (Compose prints "not supported outside Swarm" warnings for these but does apply them.)
+      - source: pgpass
+        target: /pgadmin4/pgpass
+        uid: "5050"
+        mode: 0600
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  # ---------------------------------------------------------------- jobs
+  wiki:
+    image: python:3.13-slim
+    profiles: [jobs]
+    working_dir: /work/wiki_clean download
+    environment:
+      WIKI_CONTACT: ${WIKI_CONTACT:-}
+      MCP_CONTACT: ${MCP_CONTACT:-}
+    volumes:
+      - type: bind
+        source: ./wiki_clean download
+        target: /work/wiki_clean download
+        read_only: true
+      - type: bind
+        source: ./wiki documents
+        target: /work/wiki documents
+    command: ["sh", "-c", "pip install --no-cache-dir -q --root-user-action=ignore -r requirements.txt && python wiki_clean_download.py"]
+
+  ingest:
+    <<: *python
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+      args: {PROJECT: isro rag}
+    image: isro-assistant/rag
+    profiles: [jobs]
+    restart: "no"
+    working_dir: /app/isro rag
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      EMBEDDING_CACHE: /cache/embedding_cache.sqlite
+      KB_STATE: /cache/kb_state.json
+    volumes:
+      - type: bind
+        source: ./wiki documents
+        target: /app/wiki documents
+        read_only: true
+      - {type: volume, source: rag_cache, target: /cache}
+      - {type: volume, source: fastembed_cache, target: /app/isro rag/.cache}
+    command: ["/app/isro rag/.venv/bin/python", "build_knowledge_base.py"]
+    depends_on:
+      qdrant: {condition: service_healthy}
+
+  # ---------------------------------------------------------------- application
+  mcp:
+    <<: *python
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+      args: {PROJECT: isromcp}
+    image: isro-assistant/mcp
+    working_dir: /app/isromcp
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    volumes:
+      - {type: volume, source: fastembed_cache, target: /app/isro rag/.cache}
+    command: ["/app/isromcp/.venv/bin/python", "run_http_servers.py", "--host", "0.0.0.0"]
+    # localhost only: lets MCP clients (Claude Desktop, IDEs) and the agent's live tests use the servers
+    ports: ["127.0.0.1:8101-8104:8101-8104"]
+    healthcheck:
+      test: ["CMD", "/app/isromcp/.venv/bin/python", "-c",
+             "import socket; [socket.create_connection(('127.0.0.1', p), 2).close() for p in (8101, 8102, 8103, 8104)]"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    depends_on:
+      qdrant: {condition: service_healthy}
+
+  api:
+    <<: *python
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+      args: {PROJECT: isro api}
+    image: isro-assistant/api
+    working_dir: /app/isro api
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-isro}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-isro_agent}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      MCP_HOST: mcp
+      MCP_TRANSPORT: http
+    ports: ["${API_PORT:-8000}:8000"]
+    command: ["sh", "-c", ".venv/bin/alembic upgrade head && exec .venv/bin/python run.py --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "/app/isro api/.venv/bin/python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      mcp: {condition: service_healthy}
+
+  frontend:
+    build: ./isro assistant frontend
+    image: isro-assistant/frontend
+    restart: unless-stopped
+    ports: ["${FRONTEND_PORT:-3000}:80"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ > /dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      api: {condition: service_healthy}
+
+configs:
+  pgpass:
+    content: "postgres:5432:*:${POSTGRES_USER:-isro}:${POSTGRES_PASSWORD}\n"
+
+volumes:
+  pg_data:
+  redis_data:
+  qdrant_data:
+  rag_cache:
+  fastembed_cache:
