@@ -1,3 +1,44 @@
+Abishek's README
+
+Why did I choose this assignment?
+    I have extensive experience in creating a multi-agentic system for a biopharma company that uses content from research papers. This aligns with 'Option 1: Chat With Your Docs'. As a result, I chose this task.
+
+Why ISRO?
+    I have seen several applications and websites that use NASA's work, and they are popular. I have never seen any application that talks only about ISRO (based on my experience). So something made me work with ISRO data.
+
+Why Qdrant?
+    I did basic research on multiple vector databases that can handle hybrid search. Based on the information obtained, Qdrant was chosen as it can handle both vector and BM25 search.
+
+Why hybrid?
+    Based on the results from A/B testing and its related metric scores, hybrid was chosen.
+
+Why LangChain and LangGraph?
+    I have very good experience with those two, and they are well suited for multi-agentic routing workflows.
+
+Why FastAPI?
+    Comparatively faster than other frameworks and best suited for async workflows.
+
+Why Azure AI Foundry?
+    Provides a trial version with 200 USD credits. Best to handle and manage multiple GenAI models without individual subscriptions.
+    Built-in AI guardrails.
+    Built-in metrics and control.
+
+Room for improvement:
+    Celery can be included to run tasks in the background and to run multiple requests at the same time, for queuing and scheduling tasks.
+    Can be deployed in a cloud like AWS with a load balancer to control traffic between targets (can deploy the agent as a separate server, on instances or as Lambda functions). Other security and firewall capabilities.
+
+What was the thought process?
+
+- Work with large RAG or documents
+- To demonstrate a hybrid approach, but it must not be a forced one. The use case must suit the hybrid need.
+- To demonstrate multi-agent orchestration and workflow
+- Display everything with metrics in the frontend for better UX
+- Log everything
+- Evaluation and testing techniques
+
+
+README CREATED BY AI
+
 # ISRO Assistant – chat with the Indian space programme
 
 A full-stack, multi-agent RAG assistant over **468 English Wikipedia articles about ISRO** plus three live
